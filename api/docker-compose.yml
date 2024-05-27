@@ -1,0 +1,29 @@
+services:
+  stock_loader:
+    container_name: alertos_stock_loader
+    build:
+      context: .
+      dockerfile: Dockerfile.stocksource
+    volumes:
+      - .:/code
+  api:
+    container_name: alertos_api
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/code
+  mongo:
+    container_name: alertos_mongo
+    image: "mongo:7.0"
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    volumes:
+      - ./mongo_data:/data/db
+    ports:
+      - 27017:27017
+  redis:
+    container_name: alertos_redis
+    image: "redis:alpine"
