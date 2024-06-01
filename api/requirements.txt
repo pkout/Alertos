@@ -1,4 +1,5 @@
 flask
 redis
+mongoengine
 pymongo
 pyyaml

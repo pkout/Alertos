@@ -7,4 +7,4 @@ if [ -z "$(docker images -q alertos_test:latest 2> /dev/null)" ]; then
 fi
 
 echo "Running tests"
-docker run --rm --name alertos_test --volume .:/code alertos_test /bin/bash -c "cd .. && ./run_unit_tests.sh"
+docker run --rm --name alertos_test --volume .:/code alertos_test /bin/bash -c "cd .. && ./run_unit_tests.sh $@"

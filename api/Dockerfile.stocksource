@@ -6,4 +6,4 @@ COPY requirements-stocksource.txt requirements-stocksource.txt
 RUN pip install -r requirements-stocksource.txt
 WORKDIR /code/src
 # COPY . .
-ENTRYPOINT ["python", "-u", "stock_loader.py"]  # -u means unbuffered for print output to go to docker logs
+ENTRYPOINT ["python", "-u", "stock_producer.py"]  # -u means unbuffered for print output to go to docker logs

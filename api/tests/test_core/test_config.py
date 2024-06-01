@@ -3,20 +3,34 @@ import unittest
 from pathlib import Path
 
 from core.config import Config
-from core.config import ConfigFileNotFoundError
+from core.config import InvalidEnvironentError
+from core.config import Environment
 from core.utils import DotDict
 
 class TestConfig_Config(unittest.TestCase):
 
-    def test_to_dict_returns_config_dict(self):
-        config_file_path = Path(__file__).parent.joinpath('fixtures', 'config.yml')
+    test_config_fixture_path_pattern = Path(__file__).parent / Path('fixtures', 'test_config_{0}.yml')
 
-        actual_config = Config(config_file_path).to_dict()
-
+    def test_to_dotdict_returns_dotdict_instance(self):
+        Config.config_file_path_pattern = TestConfig_Config.test_config_fixture_path_pattern
+        actual_config = Config(Environment.DEV.value).to_dotdict()
         self.assertIsInstance(actual_config, DotDict)
 
-    def test_raises_if_config_file_not_found(self):
-        config_file_path = '/tmp/wrong/path'
+    def test_to_dict_returns_dict_instance(self):
+        Config.config_file_path_pattern = TestConfig_Config.test_config_fixture_path_pattern
+        actual_config = Config(Environment.DEV.value).to_dict()
+        self.assertIsInstance(actual_config, dict)
 
-        with self.assertRaises(ConfigFileNotFoundError):
-            Config(config_file_path)
+    def test_to_dotdict_returns_default_config_if_config_file_path_not_passed(self):
+        actual_config = Config(Environment.DEV.value).to_dotdict()
+        self.assertIsInstance(actual_config, DotDict)
+
+    def test_raises_for_invalid_environment(self):
+        with self.assertRaises(InvalidEnvironentError):
+            Config('invalid-env')
+
+    def test_can_be_used_as_dictionary(self):
+        Config.config_file_path_pattern = TestConfig_Config.test_config_fixture_path_pattern
+        actual_value = Config(Environment.DEV.value)['MySection']['key']
+        expected_value = 'value'
+        self.assertEqual(actual_value, expected_value)
