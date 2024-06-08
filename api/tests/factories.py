@@ -1,8 +1,9 @@
-import factory
 import random
 
-from core import models
+import factory
 from faker import Faker
+
+from core import models
 
 fake = Faker()
 

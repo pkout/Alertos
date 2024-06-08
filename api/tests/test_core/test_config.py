@@ -1,3 +1,6 @@
+# pylint:disable=missing-module-docstring, missing-class-docstring
+# pylint:disable=missing-function-docstring, invalid-name, line-too-long
+
 import unittest
 
 from pathlib import Path

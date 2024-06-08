@@ -1,7 +1,14 @@
+Logging:
+  Format: '%(asctime)s [%(name)s] %(levelname)-8s %(message)s'
+  Level: DEBUG
+
 Database:
   Name: alertos
   ConnectionString: 'mongodb://root:root@mongo:27017'
 
 Stocks:
-  Provider: Polygon
-  SubscriptionsDetailsSource: alerts
+  Provider: Schwab
+  SubscriptionsSource: alerts
+
+Schwab:
+  MinApiRequestsIntervalSecs: 0.1  # allows up to 120 requests per second

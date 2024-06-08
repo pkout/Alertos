@@ -3,3 +3,4 @@ mongoengine
 redis
 pymongo
 pyyaml
+requests
