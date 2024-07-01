@@ -18,4 +18,5 @@ class Test_Alerts_Alerts(unittest.TestCase):
         actual_subscriptions = alerts.list_subscriptions()
         # Subscriptions are pairs of (symbol, frequency) tuples
         expected_subscriptions = list((a.symbol, a.frequency, a.period) for a in stub_alert_models)
+
         self.assertEqual(actual_subscriptions, expected_subscriptions)

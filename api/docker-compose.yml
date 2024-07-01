@@ -1,16 +1,12 @@
-env_file:
-  - path: ./default.env
-    required: true # default
 services:
   stock_loader:
+    env_file:
+      - path: "default.env"
+        required: true # default
     container_name: alertos_stock_loader
     build:
       context: .
       dockerfile: Dockerfile.stocksource
-    environment:
-      - SCHWAB_API_KEY=${SCHWAB_API_KEY}
-      - SCHWAB_API_SECRET=${SCHWAB_API_SECRET}
-      - SCHWAB_ACCESS_TOKEN=${SCHWAB_ACCESS_TOKEN}
     volumes:
       - .:/code
   api:

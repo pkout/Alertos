@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from core.config import Config
-from core.config import InvalidEnvironentError
+from core.config import InvalidEnvironmentError
 from core.config import Environment
 from core.utils import DotDict
 
@@ -29,7 +29,7 @@ class TestConfig_Config(unittest.TestCase):
         self.assertIsInstance(actual_config, DotDict)
 
     def test_raises_for_invalid_environment(self):
-        with self.assertRaises(InvalidEnvironentError):
+        with self.assertRaises(InvalidEnvironmentError):
             Config('invalid-env')
 
     def test_can_be_used_as_dictionary(self):

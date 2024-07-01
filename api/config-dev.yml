@@ -11,4 +11,7 @@ Stocks:
   SubscriptionsSource: alerts
 
 Schwab:
-  MinApiRequestsIntervalSecs: 0.1  # allows up to 120 requests per second
+  # Allows up to 120 requests per second
+  # Set equal or greater to the least subscription frequency
+  # Set to an integer divisor of all subscription frequencies
+  MarketDataUpdateIntervalSecs: 1

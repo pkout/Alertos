@@ -4,7 +4,7 @@ import yaml
 
 from core.utils import DotDict, ExtendedEnum
 
-class InvalidEnvironentError(Exception):
+class InvalidEnvironmentError(Exception):
     """Raised if the environment is invalid."""
 
 class Environment(ExtendedEnum):
@@ -19,7 +19,7 @@ class Config:
     def __init__(self, env):
         if env not in Environment.list():
             msg = f'Invalid environment: {env}'
-            raise InvalidEnvironentError(msg)
+            raise InvalidEnvironmentError(msg)
 
         self._load(str(Config.config_file_path_pattern).format(env))
 

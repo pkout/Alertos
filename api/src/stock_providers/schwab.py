@@ -1,10 +1,66 @@
 """Wrapper for Polygon.io stock API."""
 
+import base64
 import os
 import re
 import requests
 
-from core import config
+from json.decoder import JSONDecodeError
+from functools import wraps
+from urllib3.exceptions import ReadTimeoutError
+from requests.exceptions import ReadTimeout
+
+from core.logging import get_logger
+from stock_providers.exceptions import UnauthorizedError
+from stock_providers.exceptions import UnableToRetrieveStockDataError
+
+logger = get_logger(__name__)
+
+def authorize():
+    app_key = os.environ['SCHWAB_API_KEY']
+    app_secret = os.environ['SCHWAB_API_SECRET']
+    refresh_token = os.environ['SCHWAB_REFRESH_TOKEN']
+
+    payload = {
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }
+
+    key_secret = base64.b64encode(
+        bytes(f"{app_key}:{app_secret}", "utf-8")
+    ).decode("utf-8")
+
+    headers = {
+        'Authorization': f'Basic {key_secret}',
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    response = requests.post(
+        url="https://api.schwabapi.com/v1/oauth/token",
+        headers=headers,
+        data=payload,
+    )
+
+    if response.status_code == 200:
+        logger.info("Retrieved new access token using refresh token.")
+    else:
+        logger.error(f"Error refreshing access token: {response.text}")
+
+    response_dict = response.json()
+    os.environ['SCHWAB_ACCESS_TOKEN'] = response_dict['access_token']
+    os.environ['SCHWAB_REFRESH_TOKEN'] = response_dict['refresh_token']
+    os.environ['SCHWAB_TOKEN_EXPIRES_IN'] = response_dict['expires_in']
+
+def authorized(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except UnauthorizedError as ex:
+            authorize()
+            return f(*args, **kwargs)
+
+    return decorated
 
 class Schwab:
     """
@@ -14,10 +70,12 @@ class Schwab:
 
     PRICE_HISTORY_API_URL_PATTERN = ''.join([
         'https://api.schwabapi.com/marketdata/v1/pricehistory?symbol={0}&',
-        'periodType={1}&period={2}&frequencyType={3}&frequency={4}'
+        'periodType={2}&period={1}&frequencyType={4}&frequency={3}'
     ])
 
-    min_api_requests_interval_secs = config.Schwab.MinApiRequestsIntervalSecs
+    QUOTES_API_URL_PATTERN = ''.join([
+        'https://api.schwabapi.com/marketdata/v1/quotes?symbols={0}'
+    ])
 
     def __init__(self):
         self._api_key = os.environ['SCHWAB_API_KEY']
@@ -29,6 +87,7 @@ class Schwab:
         """Requests a new access token using the refresh token."""
         pass
 
+    @authorized
     def price_history(self, symbol, frequency, period, start_date=None,
                       end_date=None, include_extended_data=False):
         """Returns the ticker symbol market data for the given parameters.
@@ -81,10 +140,35 @@ class Schwab:
             url += f'&needExtendedData={value}'
 
         url += '&needPreviousClose=true'
+        headers={'Authorization': f'Bearer {os.environ["SCHWAB_ACCESS_TOKEN"]}'}
 
-        response = requests.get(url, timeout=5)
+        try:
+            response = requests.get(url, timeout=5, headers=headers)
+        except (JSONDecodeError, ReadTimeout, ReadTimeoutError) as e:
+            raise UnableToRetrieveStockDataError(f'Response: {response.text}') from e
+
+        if response.status_code == 401:
+            raise UnauthorizedError('API request returned 401.')
 
         symbol_data_dict = response.json()
+
+        return symbol_data_dict
+
+    @authorized
+    def quotes(self, symbols):
+        symbols = [s.upper() for s in symbols]
+        symbols_str = ','.join(symbols)
+        url = Schwab.QUOTES_API_URL_PATTERN.format(symbols_str)
+        headers={'Authorization': f'Bearer {os.environ["SCHWAB_ACCESS_TOKEN"]}'}
+
+        try:
+            response = requests.get(url, timeout=5, headers=headers)
+            symbol_data_dict = response.json()
+        except (JSONDecodeError, ReadTimeout, ReadTimeoutError) as e:
+            raise UnableToRetrieveStockDataError(f'Response: {response.text}') from e
+
+        if response.status_code == 401:
+            raise UnauthorizedError('API request returned 401.')
 
         return symbol_data_dict
 
