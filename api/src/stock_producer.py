@@ -70,7 +70,6 @@ class StockProducer:
         self._price_history = {}
         self._unclosed_candles_close_timestamps = {}
 
-
     def subscriptions_data_feed(self, update_interval_secs):
         """Returns a generator iterating through tuples of
         (subscription, market data) for all subscriptions defined
@@ -78,12 +77,13 @@ class StockProducer:
         """
         while True:
             subscriptions = self._stock_subscriptions_source.list_subscriptions()
+            symbols = [s[0] for s in subscriptions]
             self._log_subscriptions(subscriptions)
 
             if self._price_history == {}:
                 try:
                     for subscription in subscriptions:
-                        yield self._load_price_history_for(subscription, self._price_history)
+                        yield self._load_price_history_for(subscription)
                 except UnableToRetrieveStockDataError:
                     logger.error(traceback.format_exc())
                     continue
@@ -91,7 +91,6 @@ class StockProducer:
             self._calc_unclosed_candles_close_timestamps()
 
             time.sleep(update_interval_secs)
-            symbols = [s[0] for s in subscriptions]
 
             try:
                 quotes_ohlcv = self._stock_data_provider.quotes(symbols)
@@ -100,7 +99,7 @@ class StockProducer:
                 continue
 
             for subscription in subscriptions:
-                quote_ohlcv = self._advance_last_quote_timestamp(
+                quote_ohlcv = self._upsert_unclosed_candle_timestamp(
                     subscription,
                     quotes_ohlcv
                 )
@@ -110,7 +109,7 @@ class StockProducer:
             if self.shutdown:
                 return
 
-    def _load_price_history_for(self, subscription, price_history):
+    def _load_price_history_for(self, subscription):
         symbol, frequency, period = subscription
 
         price_history_ohlcv = self._stock_data_provider.price_history(
@@ -120,16 +119,16 @@ class StockProducer:
             end_date=int(datetime.datetime.now().timestamp() * 1000)
         )
 
-        price_history[subscription] = price_history_ohlcv
+        self._price_history[subscription] = price_history_ohlcv
 
-        return subscription, json.dumps(price_history[subscription])
+        return subscription, json.dumps(self._price_history[subscription])
 
     def _calc_unclosed_candles_close_timestamps(self):
         for subscription, ph in self._price_history.items():
             last_candle_timestamp = ph['candles'][-1]['datetime']
             self._unclosed_candles_close_timestamps[subscription] = last_candle_timestamp + 60000
 
-    def _advance_last_quote_timestamp(self, subscription, quotes_ohlcv):
+    def _upsert_unclosed_candle_timestamp(self, subscription, quotes_ohlcv):
         symbol = subscription[0]
         quote_ohlcv = quotes_ohlcv[symbol.upper()]['quote']
         quote_timestamp = quote_ohlcv['quoteTime']
